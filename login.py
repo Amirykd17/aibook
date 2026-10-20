@@ -1,32 +1,38 @@
 # create a login in python
-import getpass
-import secrets
+set -euo pipefail
 
-USERS = {
-    "admin": "password123",
+declare -A USERS=(
+  [admin]="password123"
+)
+
+MAX_ATTEMPTS=3
+
+login() {
+  local attempt username password expected remaining
+
+  for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)); do
+    read -r -p "Username: " username
+    username="${username#"${username%%[![:space:]]*}"}"
+    username="${username%"${username##*[![:space:]]}"}"
+
+    read -r -s -p "Password: " password
+    echo
+
+    expected="${USERS[$username]:-}"
+    if [[ -n "$expected" && "$password" == "$expected" ]]; then
+      echo "Welcome, ${username}."
+      return 0
+    fi
+
+    remaining=$((MAX_ATTEMPTS - attempt))
+    if ((remaining > 0)); then
+      echo "Invalid username or password. ${remaining} attempt(s) left."
+    else
+      echo "Too many failed attempts. Access denied."
+    fi
+  done
+
+  return 1
 }
 
-MAX_ATTEMPTS = 3
-
-
-def login() -> bool:
-    for attempt in range(1, MAX_ATTEMPTS + 1):
-        username = input("Username: ").strip()
-        password = getpass.getpass("Password: ")
-
-        expected = USERS.get(username)
-        if expected and secrets.compare_digest(password, expected):
-            print(f"Welcome, {username}.")
-            return True
-
-        remaining = MAX_ATTEMPTS - attempt
-        if remaining:
-            print(f"Invalid username or password. {remaining} attempt(s) left.")
-        else:
-            print("Too many failed attempts. Access denied.")
-
-    return False
-
-
-if __name__ == "__main__":
-    login()
+login
